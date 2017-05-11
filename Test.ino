@@ -25,8 +25,8 @@ bool polishing = false;
 
 #define POLISHING_TIME (5000)
 #define POLISHING_TRESHOLD (5)
-#define POLISHING_SPEED (16)
-#define IDLE_SPEED (8)
+#define POLISHING_SPEED (4)
+#define IDLE_SPEED (2)
 void start_polishing() {
 	polishing_start = millis();
 	speed_reference = POLISHING_SPEED;
