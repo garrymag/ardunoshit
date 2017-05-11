@@ -5,7 +5,7 @@
 //unsigned long volatile *pioc_codr = (uint32_t volatile *) 0x400E1234;
 #define TIME_TO_STABILIZE (15)
 
-#define SAMPLING_FREQ (16)
+#define SAMPLING_FREQ (64)
 #define CLK_DIV_FACTOR (128)
 #define TIMER1_TICKS (VARIANT_MCK / CLK_DIV_FACTOR / SAMPLING_FREQ)
 
@@ -23,6 +23,29 @@ int speed_reference = 0;
 unsigned long polishing_start = 0;
 bool polishing = false;
 
+#define POLISHING_TIME (5000)
+#define POLISHING_TRESHOLD (50)
+#define POLISHING_SPEED (256)
+#define IDLE_SPEED (128)
+void start_polishing() {
+	polishing_start = millis();
+	speed_reference = POLISHING_SPEED;
+	/* Turn led on */
+	REG_PIOC_SODR = PIO_PC25;
+	polishing = true;
+}
+
+void stop_polishing() {
+	speed_reference = IDLE_SPEED;
+	/* Turn led off */
+	REG_PIOC_CODR = PIO_PC25;
+	polishing = false;
+}
+
+int check_polishing_done() {
+	unsigned long current_time = millis();
+	return current_time - polishing_start > POLISHING_TIME;
+}
 void inc_ir_changes_counter() {
 	unsigned long current_change = millis();
 	if (current_change > last_change + TIME_TO_STABILIZE) {
@@ -30,7 +53,6 @@ void inc_ir_changes_counter() {
 		ir_changes_counter += 1;
 	}
 }
-
 
 #define TIMER1_CHANNEL (0)
 void TC3_Handler() {
@@ -59,31 +81,9 @@ void setup() {
 	Serial.begin(9600);
 	attachInterrupt(IR_PIN, &inc_ir_changes_counter, FALLING);
 	start_timer_TC1(TIMER1_TICKS, TIMER1_CHANNEL);
-}
-
-#define POLISHING_TIME (5000)
-#define POLISHING_TRESHOLD (50)
-#define POLISHING_SPEED (256)
-#define IDLE_SPEED (128)
-void start_polishing() {
-	polishing_start = millis();
-	speed_reference = POLISHING_SPEED;
-	/* Turn led on */
-	REG_PIOC_SODR = PIO_PC25;
-	polishing = true;
-}
-
-void stop_polishing() {
 	speed_reference = IDLE_SPEED;
-	/* Turn led off */
-	REG_PIOC_CODR = PIO_PC25;
-	polishing = false;
 }
 
-int check_polishing_done() {
-	unsigned long current_time = millis();
-	return current_time - polishing_start > POLISHING_TIME;
-}
 
 #define U_MIN (0)
 #define U_MAX (255)
