@@ -95,8 +95,8 @@ unsigned int saturate(unsigned int u) {
 	return u;
 }
 
-#define Kp (10.0)
-#define Kd (1.0)
+#define Kp (50.0)
+#define Kd (0.0)
 #define Ki (1.0)
 #define I_MIN (-50)
 #define I_MAX (50)
