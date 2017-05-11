@@ -5,7 +5,7 @@
 //unsigned long volatile *pioc_codr = (uint32_t volatile *) 0x400E1234;
 #define TIME_TO_STABILIZE (15)
 
-#define SAMPLING_FREQ (64)
+#define SAMPLING_FREQ (8)
 #define CLK_DIV_FACTOR (128)
 #define TIMER1_TICKS (VARIANT_MCK / CLK_DIV_FACTOR / SAMPLING_FREQ)
 
@@ -24,9 +24,9 @@ unsigned long polishing_start = 0;
 bool polishing = false;
 
 #define POLISHING_TIME (5000)
-#define POLISHING_TRESHOLD (50)
-#define POLISHING_SPEED (256)
-#define IDLE_SPEED (128)
+#define POLISHING_TRESHOLD (5)
+#define POLISHING_SPEED (16)
+#define IDLE_SPEED (8)
 void start_polishing() {
 	polishing_start = millis();
 	speed_reference = POLISHING_SPEED;
@@ -95,7 +95,7 @@ unsigned int saturate(unsigned int u) {
 	return u;
 }
 
-#define Kp (1.0)
+#define Kp (10.0)
 #define Kd (1.0)
 #define Ki (1.0)
 #define I_MIN (-50)
