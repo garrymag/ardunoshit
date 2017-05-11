@@ -12,7 +12,6 @@
 volatile unsigned int ir_changes_counter = 0;
 
 volatile unsigned long last_change = 0;
-unsigned long polishing_start = 0;
 
 volatile int error = 0;
 volatile int error_derivative = 0;
@@ -21,22 +20,23 @@ volatile int error_integral = 0;
 volatile int speed = 0;
 int speed_reference = 0;
 
+unsigned long polishing_start = 0;
 bool polishing = false;
 
 void inc_ir_changes_counter() {
-  unsigned long current_change = millis();
-  if (current_change > last_change + TIME_TO_STABILIZE) {
-    last_change = current_change;
-    ir_changes_counter += 1;
-  }
+	unsigned long current_change = millis();
+	if (current_change > last_change + TIME_TO_STABILIZE) {
+		last_change = current_change;
+		ir_changes_counter += 1;
+	}
 }
 
 
 #define TIMER1_CHANNEL (0)
 void TC3_Handler() {
-  TC_GetStatus(TC1, 0);
+	TC_GetStatus(TC1, 0);
 
-  /* For accuracy we do operations that
+	/* For accuracy we do operations that
 	 * depend on time in this ISR */
 	int error_previous = error;
 
@@ -53,45 +53,45 @@ void TC3_Handler() {
 #define IR_PIN (6)
 #define PWM_PIN (7)
 void setup() {
-  pinMode(IR_PIN, INPUT);
-  pinMode(PWM_PIN, OUTPUT);
-  pinMode(LED_PIN, OUTPUT);
-  Serial.begin(9600);
-  attachInterrupt(IR_PIN, &inc_ir_changes_counter, FALLING);
-  start_timer_TC1(TIMER1_TICKS, TIMER1_CHANNEL);
+	pinMode(IR_PIN, INPUT);
+	pinMode(PWM_PIN, OUTPUT);
+	pinMode(LED_PIN, OUTPUT);
+	Serial.begin(9600);
+	attachInterrupt(IR_PIN, &inc_ir_changes_counter, FALLING);
+	start_timer_TC1(TIMER1_TICKS, TIMER1_CHANNEL);
 }
 
+#define POLISHING_TIME (5000)
 #define POLISHING_TRESHOLD (50)
 #define POLISHING_SPEED (256)
 #define IDLE_SPEED (128)
 void start_polishing() {
-  polishing_start = millis();
+	polishing_start = millis();
 	speed_reference = POLISHING_SPEED;
 	/* Turn led on */
-  REG_PIOC_SODR = PIO_PC25;
+	REG_PIOC_SODR = PIO_PC25;
 	polishing = true;
 }
 
 void stop_polishing() {
 	speed_reference = IDLE_SPEED;
 	/* Turn led off */
-  REG_PIOC_CODR = PIO_PC25;
-  polishing = false;
+	REG_PIOC_CODR = PIO_PC25;
+	polishing = false;
 }
 
-#define POLISHING_TIME (5000)
 int check_polishing_done() {
-  unsigned long current_time = millis();
+	unsigned long current_time = millis();
 	return current_time - polishing_start > POLISHING_TIME;
 }
 
 #define U_MIN (0)
 #define U_MAX (255)
 unsigned int saturate(unsigned int u) {
-  if (u < U_MIN)
-	  return U_MIN;
+	if (u < U_MIN)
+		return U_MIN;
 	else if (u > U_MAX)
-	  return U_MAX;
+		return U_MAX;
 	return u;
 }
 
@@ -107,20 +107,18 @@ void loop() {
 	else if (error_integral > I_MAX)
 		error_integral = I_MAX;
 
-  /* Speed is in half-rotations per sample */
-	
-	unsigned int u = saturate(Kp * error + Kd * error_derivative + Ki * error_integral); 
-	
+	/* Speed is in half-rotations per sample */
+	unsigned int u = saturate(Kp * error + Kd * error_derivative * SAMPLING_FREQ + Ki * error_integral / SAMPLING_FREQ); 
 
-  if (polishing) {
+	if (polishing) {
 		if (check_polishing_done()) {
-		  stop_polishing();
+			stop_polishing();
 		}
 	} else {
-	  if (error > POLISHING_TRESHOLD) {
-		  start_polishing();
+		if (error > POLISHING_TRESHOLD) {
+			start_polishing();
 		}
 	}
-		  
-  analogWrite(PWM_PIN, u);
+
+	analogWrite(PWM_PIN, u);
 }
